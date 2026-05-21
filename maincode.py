@@ -72,9 +72,8 @@ def load_schedules(): #지정한 파일에서 전체일정을 불러오는 함�
                 priority = data[2] #세번째는 priority(우선순위)로 지정
                 memo = data[3]  #네번째는 memo(메모)로 지정
 
-                if is_valid_date(date) and priority.isdigit() and int(priority) >= 1:  #만약 날짜가 is_valid_date함수조건을 만족하고 우선순위객체가 숫자이고 1 이상이면
+                if is_valid_date(date) and priority in ["긴급", "높음", "보통", "낮음"]: #날짜가 올바르고 우선순위가 4단계 중 하나이면
                     schedules.append([task, date, priority, memo]) #schedules 리스트에 [task, date, priority, memo] 형태로 추가
-
 
 def save_schedules():  #전체일정을 요소 사이에 |를 추가해서 파일에 저장하는 함수
     with open(file_name, "w", encoding="utf-8") as f: #파일을 쓰기모드로 엶
@@ -85,7 +84,7 @@ def save_schedules():  #전체일정을 요소 사이에 |를 추가해서 파�
 def clear_input_fields(): #입력창(할일,날짜, 우선순위, 메모 옆에 텍스트를 입력하는 칸)을 새로고침하는 함수
     entry_task.delete(0, tk.END) #할일입력창 빈칸으로 새로고침
     entry_date.delete(0, tk.END) #날짜입력창 빈칸으로 새로고침
-    entry_priority.delete(0, tk.END) #우선순위입력창 빈칸으로 새로고침
+    priority_var.set("보통") #우선순위를 기본값 보통으로 초기화
     entry_memo.delete(0, tk.END) #메모입력창 빈칸으로 새로고침
 
     entry_date.insert(0, str(datetime.date.today())) #삭제된 날짜입력창에 현재시점 오늘 날짜 다시 입력
@@ -129,8 +128,7 @@ def show_rows(rows, empty_msg, dday_mode):  #rows 리스트 속 일정들을 결
             if memo != "": #만약 메모가 빈 문자열이 아니라면
                 memo_part = f" | 메모: {memo}"
 
-            text = f"{num}. {date} | {dday}{priority}순위 | {task}{memo_part}" #이러한 형식으로 번호,날짜,디데이,우선순위,할일,메모를 저장
-
+            text = f"{num}. {date} | {dday}[{priority}] | {task}{memo_part}" #번호, 날짜, 디데이, 우선순위, 할일, 메모를 출력 형식으로 저장
             result_box.insert(tk.END, text) #전체일정표시창의 마지막줄에 새 문장추가
             num += 1 #다음일정번호 +1증가
 
@@ -145,7 +143,7 @@ def read_input_schedule(): # 입력창에 입력하는 문자의 오류를 5가�
 
     task = entry_task.get().strip() #할일칸에 입력한 문자 공백제거
     date = entry_date.get().strip() #날짜칸에 입력한 문자 공백제거
-    priority = entry_priority.get().strip() #우선순위칸에 입력한 문자 공백제거
+    priority = priority_var.get() #선택된 우선순위 값을 가져옴
     memo = entry_memo.get().strip() #메모칸에 입력한 문자 공백제거
 
     if task == "": #만약 할일입력창에 빈칸을 입력하면 
@@ -160,10 +158,6 @@ def read_input_schedule(): # 입력창에 입력하는 문자의 오류를 5가�
         messagebox.showerror("입력 오류", "날짜는 YYYY-MM-DD 형식으로 입력하세요. 예: 2026-05-11") #입력오류알림창띄움
         entry_date.delete(0, tk.END) #날짜입력창에 입력한 문자제거
         entry_date.insert(0, str(datetime.date.today())) #다시 현재시점오늘날짜를 날짜입력창 빈칸에 채움
-        return None #None 반환
-
-    if not priority.isdigit() or int(priority) < 1: #만약 우선순위칸에 입력한 문자가 숫자가 아니거나 1보다 작다면
-        messagebox.showerror("입력 오류", "우선순위는 1 이상의 숫자로 입력하세요.") #입력오류알림창띄움
         return None #None 반환
     
     new_schedule = [task, date, priority, memo] # 검사를 통과한 입력값들을 새 일정리스트로 만듦
@@ -188,8 +182,9 @@ def add_schedule(): #추가한 새 일정을 저장시키는 함수
 
 
 def sort_key_by_date_priority(s): #전체일정 정렬시 날짜를 1순위, 우선순위를 2순위로 정렬하는 기준 함수
+    priority_order = {"긴급": 1, "높음": 2, "보통": 3, "낮음": 4} #우선순위별 정렬 순서 지정
     date = s[1] #일정의 두번째요소인 날짜 지정
-    priority = int(s[2]) #일정의 세번째요소인 우선순위를 정수로 변환하여 지정
+    priority = priority_order[s[2]] #문자 우선순위를 숫자 정렬값으로 변환
     return (date, priority) #날짜와 우선순위를 정렬 세트로 반환
 
 
@@ -253,8 +248,9 @@ def open_dday_window(): #D-day 계산 버튼을 눌렀을 때 D-day 계산 보�
 
 
 def sort_key_by_priority_date(s): #우선순위 정렬시 우선순위를 1순위, 날짜를 2순위로 정렬하는 기준 함수
-    date = s[1] #일정의 두번째요소를 날짜(date)로 지정
-    priority = int(s[2]) #일정의 세번째요소인 우선순위(priority)를 정수로 변환
+    priority_order = {"긴급": 1, "높음": 2, "보통": 3, "낮음": 4} #우선순위별 정렬 순서 지정
+    date = s[1] #일정의 두번째요소를 날짜로 지정
+    priority = priority_order[s[2]] #문자 우선순위를 숫자 정렬값으로 변환
     return (priority, date) #우선순위와 날짜를 정렬 세트로 반환
 
 
@@ -367,18 +363,36 @@ input_frame = tk.Frame(root) #할일, 날짜, 우선순위, 메모 입력창들�
 input_frame.pack(pady=5) #입력프레임을 위아래 여백5로 배치
 
 tk.Label(input_frame, text="할 일").grid(row=0, column=0, padx=5, pady=5) #할일 안내라벨을 입력프레임 0행0열에 배치
-entry_task = tk.Entry(input_frame, width=25) #할일을 입력받을 입력창 생성
-entry_task.grid(row=0, column=1, padx=5, pady=5) #할일 입력창을 입력프레임 0행1열에 배치
-
+entry_task = tk.Entry(input_frame, width=25) #할 일을 입력받을 입력창 생성
+entry_task.grid(row=0, column=1, padx=5, pady=5) #할 일 입력창을 입력프레임 0행1열에 배치
 tk.Label(input_frame, text="날짜(YYYY-MM-DD)").grid(row=0, column=2, padx=5, pady=5) #날짜 안내라벨을 입력프레임 0행2열에 배치
 entry_date = tk.Entry(input_frame, width=18) #날짜를 입력받을 입력창 생성
 entry_date.grid(row=0, column=3, padx=5, pady=5) #날짜 입력창을 입력프레임 0행3열에 배치
 entry_date.insert(0, str(datetime.date.today())) #날짜 입력창에 현재시점 오늘날짜 미리 입력
 
 tk.Label(input_frame, text="우선순위").grid(row=1, column=0, padx=5, pady=5) #우선순위 안내라벨을 입력프레임 1행0열에 배치
-entry_priority = tk.Entry(input_frame, width=25) #우선순위를 입력받을 입력창 생성
-entry_priority.grid(row=1, column=1, padx=5, pady=5) #우선순위 입력창을 입력프레임 1행1열에 배치
+# 우선순위를 저장할 tkinter 변수 생성
+priority_var = tk.StringVar()
 
+# 기본 선택값을 "보통"으로 설정
+priority_var.set("보통")
+
+# 드롭다운(OptionMenu) 생성
+# 사용자는 긴급 / 높음 / 보통 / 낮음 중 하나 선택 가능
+priority_menu = tk.OptionMenu(
+    input_frame,
+    priority_var,
+    "긴급",
+    "높음",
+    "보통",
+    "낮음"
+)
+
+# 드롭다운 너비 설정
+priority_menu.config(width=20)
+
+# 입력 프레임의 1행 1열 위치에 배치
+priority_menu.grid(row=1, column=1, padx=5, pady=5)
 tk.Label(input_frame, text="메모").grid(row=1, column=2, padx=5, pady=5) #메모 안내라벨을 입력프레임 1행2열에 배치
 entry_memo = tk.Entry(input_frame, width=18) #메모를 입력받을 입력창 생성
 entry_memo.grid(row=1, column=3, padx=5, pady=5) #메모 입력창을 입력프레임 1행3열에 배치
