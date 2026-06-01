@@ -26,13 +26,13 @@ def _reload_after_save_failure():
 # 전체 일정을 시작일·우선순위 순으로 정렬해 결과창에 표시한다.
 def show_all():
     sorted_rows = sorted(state.schedules, key=sort_key_by_date_priority)
-    show_rows(sorted_rows, "등록된 일정이 없습니다.", False)
+    show_rows(sorted_rows, "등록된 일정이 없습니다.")
 
 
 # 전체 일정을 우선순위·시작일 순으로 정렬해 결과창에 표시한다.
 def sort_by_priority():
     sorted_rows = sorted(state.schedules, key=sort_key_by_priority_date)
-    show_rows(sorted_rows, "등록된 일정이 없습니다.", False)
+    show_rows(sorted_rows, "등록된 일정이 없습니다.")
 
 
 # 입력란에서 일정을 읽어 목록에 추가하고 파일에 저장한 뒤 화면을 갱신한다.

@@ -11,9 +11,9 @@ from schedule_app.crud import (
     show_all,
     sort_by_priority,
 )
-from schedule_app.export_csv import export_to_csv
+from schedule_app.display import toggle_dday_display, update_dday_toggle_button
 from schedule_app.input_ops import set_main_dates
-from schedule_app.search import open_date_search_window, open_dday_window
+from schedule_app.search import open_date_search_window
 from schedule_app.storage import load_schedules
 
 # 메인 창 UI 구성, 버튼 연결, 프로그램 실행 진입.
@@ -73,22 +73,29 @@ def run():
     button_frame = tk.Frame(ui.root)
     button_frame.pack(pady=8)
 
-    # 3열 × 3행: 등록·조회 | 날짜·저장 | 수정·삭제·초기화
+    # 2행 × 4열: 빈 칸 없이 기능별로 정렬
     btn_specs = [
         ("일정 추가", add_schedule, 0, 0),
         ("전체 보기", show_all, 0, 1),
         ("우선순위 정렬", sort_by_priority, 0, 2),
-        ("D-day 조회", open_dday_window, 1, 0),
-        ("날짜별 조회", open_date_search_window, 1, 1),
-        ("CSV 저장", export_to_csv, 1, 2),
-        ("선택 수정", edit_selected, 2, 0),
-        ("선택 삭제", delete_selected, 2, 1),
-        ("전체 초기화", reset_all_schedules, 2, 2),
+        ("날짜별 조회", open_date_search_window, 0, 3),
+        ("선택 수정", edit_selected, 1, 1),
+        ("선택 삭제", delete_selected, 1, 2),
+        ("전체 초기화", reset_all_schedules, 1, 3),
     ]
     for text, cmd, r, c in btn_specs:
-        tk.Button(button_frame, text=text, width=16, command=cmd).grid(
-            row=r, column=c, padx=4, pady=4
+        tk.Button(button_frame, text=text, width=14, command=cmd).grid(
+            row=r, column=c, padx=3, pady=4
         )
+
+    ui.dday_toggle_btn = tk.Button(
+        button_frame,
+        text="종료일 표시: 켜기",
+        width=14,
+        command=toggle_dday_display,
+    )
+    ui.dday_toggle_btn.grid(row=1, column=0, padx=3, pady=4)
+    update_dday_toggle_button()
 
     ui.status_label = tk.Label(ui.root, text="", font=("Arial", 10))
     ui.status_label.pack(pady=5)
