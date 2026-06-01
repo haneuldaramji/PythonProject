@@ -1,9 +1,10 @@
 import calendar
 import datetime
 import tkinter as tk
-import tkinter.messagebox as messagebox
+from tkinter import messagebox, ttk
 
 from schedule_app.date_utils import date_to_str
+from schedule_app.theme import COLORS, font, style_toplevel
 
 # 기간 선택용 팝업 달력 UI.
 
@@ -14,24 +15,24 @@ def open_range_calendar(parent, set_range_func):
     win.title("시작일을 선택하세요 (1/2)")
     win.resizable(False, False)
     win.grab_set()
+    style_toplevel(win, parent)
 
     view = datetime.date.today()
     cal_state = {"year": view.year, "month": view.month}
     clicks = []
 
-    body = tk.Frame(win)
-    body.pack(padx=12, pady=10)
+    card = ttk.LabelFrame(win, text="  기간 선택  ", padding=12)
+    card.pack(padx=14, pady=14)
 
-    nav = tk.Frame(body)
-    nav.pack(pady=(0, 6))
+    nav = ttk.Frame(card)
+    nav.pack(pady=(0, 8))
 
-    title_label = tk.Label(nav, text="", font=("Arial", 12, "bold"))
+    title_label = ttk.Label(nav, text="", font=font(parent, 12, True))
     title_label.pack(side=tk.LEFT, padx=10)
 
-    grid_frame = tk.Frame(body)
+    grid_frame = tk.Frame(card, bg=COLORS["card"])
     grid_frame.pack()
 
-    # 달력에서 이전/다음 달로 이동하고 날짜 격자를 다시 그린다.
     def change_month(delta):
         y = cal_state["year"]
         m = cal_state["month"] + delta
@@ -53,10 +54,9 @@ def open_range_calendar(parent, set_range_func):
         cal_state["month"] = m
         render_days()
 
-    tk.Button(nav, text="<", width=3, command=lambda: change_month(-1)).pack(side=tk.LEFT)
-    tk.Button(nav, text=">", width=3, command=lambda: change_month(1)).pack(side=tk.RIGHT)
+    ttk.Button(nav, text="◀", width=4, command=lambda: change_month(-1)).pack(side=tk.LEFT)
+    ttk.Button(nav, text="▶", width=4, command=lambda: change_month(1)).pack(side=tk.RIGHT)
 
-    # 클릭한 날짜를 시작일·종료일로 순서대로 받아 검증 후 콜백을 호출하고 창을 닫는다.
     def pick_date(day):
         picked = datetime.date(cal_state["year"], cal_state["month"], day)
 
@@ -76,7 +76,6 @@ def open_range_calendar(parent, set_range_func):
             set_range_func(date_to_str(start_date_obj), date_to_str(picked))
             win.destroy()
 
-    # 현재 연·월의 요일 헤더와 날짜 버튼 격자를 화면에 그린다.
     def render_days():
         for child in grid_frame.winfo_children():
             child.destroy()
@@ -87,13 +86,20 @@ def open_range_calendar(parent, set_range_func):
 
         weekdays = ["월", "화", "수", "목", "금", "토", "일"]
         for col, name in enumerate(weekdays):
-            tk.Label(grid_frame, text=name, width=4).grid(row=0, column=col, pady=2)
+            tk.Label(
+                grid_frame,
+                text=name,
+                width=4,
+                font=font(parent, 9, True),
+                bg=COLORS["header"],
+                fg=COLORS["text"],
+            ).grid(row=0, column=col, pady=2, padx=1)
 
         month_days = calendar.monthcalendar(y, m)
         for row_index, week in enumerate(month_days, start=1):
             for col_index, day in enumerate(week):
                 if day == 0:
-                    tk.Label(grid_frame, text="", width=4).grid(
+                    tk.Label(grid_frame, text="", width=4, bg=COLORS["card"]).grid(
                         row=row_index, column=col_index
                     )
                     continue
@@ -101,21 +107,26 @@ def open_range_calendar(parent, set_range_func):
                 day_date = datetime.date(y, m, day)
                 btn_text = str(day) + ("*" if day_date == today else "")
                 state_btn = tk.NORMAL if day_date >= today else tk.DISABLED
+                selected = len(clicks) == 1 and day_date == clicks[0]
+                bg = COLORS["primary"] if selected else COLORS["card"]
+                fg = COLORS["primary_text"] if selected else COLORS["text"]
 
                 btn = tk.Button(
                     grid_frame,
                     text=btn_text,
                     width=4,
                     state=state_btn,
+                    bg=bg,
+                    fg=fg,
+                    activebackground=COLORS["primary_active"],
+                    activeforeground=COLORS["primary_text"],
+                    relief=tk.FLAT if selected else tk.RAISED,
+                    font=font(parent, 9),
                     command=lambda d=day: pick_date(d),
                 )
-                if len(clicks) == 1 and day_date == clicks[0]:
-                    btn.config(bg="lightblue", relief=tk.SUNKEN, bd=3)
                 btn.grid(row=row_index, column=col_index, padx=1, pady=1)
 
     render_days()
-    tk.Label(body, text="* 오늘 날짜", font=("Arial", 9)).pack(pady=(6, 2))
-    tk.Label(body, text="파란색/눌림 표시: 선택한 시작일", font=("Arial", 9)).pack(pady=(0, 2))
-    tk.Label(body, text="단일 일정은 같은 날짜를 두 번 누르세요.", font=("Arial", 9)).pack(
-        pady=(0, 4)
+    ttk.Label(card, text="* 오늘  ·  같은 날짜를 두 번 누르면 하루 일정", style="Hint.TLabel").pack(
+        pady=(10, 0)
     )

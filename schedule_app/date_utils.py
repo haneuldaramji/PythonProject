@@ -13,12 +13,12 @@ def date_to_str(d):
     return d.isoformat()
 
 
-# 기준 날짜까지 남은 일수를 D-day, D-Day, D+N 형식 문자열로 만든다.
-def make_dday_text(target_date):
-    target = parse_date_str(target_date)
+# 종료일까지 남은 일수를 목록 표시용 문구로 만든다.
+def make_days_until_end_text(end_date):
+    target = parse_date_str(end_date)
     diff = (target - datetime.date.today()).days
     if diff > 0:
-        return f"D-{diff}"
+        return f"종료까지 {diff}일"
     if diff == 0:
-        return "D-Day"
-    return f"D+{abs(diff)}"
+        return "종료일 오늘"
+    return f"종료 {abs(diff)}일 지남"
