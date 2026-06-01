@@ -1,8 +1,10 @@
 import tkinter as tk
-import tkinter.messagebox as messagebox
+from tkinter import messagebox, ttk
 
 from schedule_app import state, ui
-from schedule_app.display import show_rows
+from schedule_app.config import PRIORITIES
+from schedule_app.display import clear_selection, get_selected_schedule, show_rows
+from schedule_app.theme import style_toplevel
 from schedule_app.input_ops import clear_input_fields, read_input_schedule
 from schedule_app.sorting import sort_key_by_date_priority, sort_key_by_priority_date
 from schedule_app.storage import load_schedules, save_schedules
@@ -50,22 +52,15 @@ def add_schedule():
 
 # 결과창에서 선택한 일정을 목록·파일에서 삭제한다.
 def delete_selected():
-    selected = ui.result_box.curselection()
-    if len(selected) == 0:
+    target = get_selected_schedule()
+    if target is None:
         messagebox.showerror("선택 오류", "삭제할 일정을 먼저 선택하세요.")
         return
-
-    index = selected[0]
-    if index >= len(state.current_rows):
-        messagebox.showerror("삭제 오류", "삭제할 일정이 없습니다.")
-        return
-
-    target = state.current_rows[index]
     if target in state.schedules:
         state.schedules.remove(target)
         if save_schedules():
             show_all()
-            ui.result_box.selection_clear(0, tk.END)
+            clear_selection()
             messagebox.showinfo("삭제 완료", "선택한 일정이 삭제되었습니다.")
         else:
             _reload_after_save_failure()
@@ -78,54 +73,53 @@ def delete_selected():
 
 # 선택한 일정을 수정하는 팝업 창을 열고 저장 시 목록·파일을 갱신한다.
 def edit_selected():
-    selected = ui.result_box.curselection()
-    if len(selected) == 0:
+    target = get_selected_schedule()
+    if target is None:
         messagebox.showerror("선택 오류", "수정할 일정을 먼저 선택하세요.")
         return
-
-    index = selected[0]
-    if index >= len(state.current_rows):
-        messagebox.showerror("수정 오류", "수정할 일정이 없습니다.")
-        return
-
-    target = state.current_rows[index]
     if target not in state.schedules:
         messagebox.showerror("수정 오류", "수정할 일정을 찾지 못했습니다.")
         return
 
     win = tk.Toplevel(ui.root)
     win.title("일정 수정")
-    win.geometry("460x280")
+    win.geometry("480x320")
     win.resizable(False, False)
+    style_toplevel(win, ui.root)
 
-    frame = tk.Frame(win)
-    frame.pack(pady=15)
+    card = ttk.LabelFrame(win, text="  일정 수정  ", padding=16)
+    card.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
 
-    tk.Label(frame, text="할 일").grid(row=0, column=0, padx=5, pady=5)
-    edit_task = tk.Entry(frame, width=32)
-    edit_task.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky="w")
+    ttk.Label(card, text="할 일").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=6)
+    edit_task = ttk.Entry(card, width=36)
+    edit_task.grid(row=0, column=1, sticky="ew", pady=6)
     edit_task.insert(0, target[0])
 
-    tk.Label(frame, text="시작일").grid(row=1, column=0, padx=5, pady=5)
-    edit_start = tk.Entry(frame, width=15)
-    edit_start.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+    ttk.Label(card, text="시작일").grid(row=1, column=0, sticky="w", padx=(0, 10), pady=6)
+    edit_start = ttk.Entry(card, width=18, justify="center")
+    edit_start.grid(row=1, column=1, sticky="w", pady=6)
     edit_start.insert(0, target[1])
 
-    tk.Label(frame, text="종료일").grid(row=2, column=0, padx=5, pady=5)
-    edit_end = tk.Entry(frame, width=15)
-    edit_end.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+    ttk.Label(card, text="종료일").grid(row=2, column=0, sticky="w", padx=(0, 10), pady=6)
+    edit_end = ttk.Entry(card, width=18, justify="center")
+    edit_end.grid(row=2, column=1, sticky="w", pady=6)
     edit_end.insert(0, target[2])
 
-    tk.Label(frame, text="우선순위").grid(row=3, column=0, padx=5, pady=5)
+    ttk.Label(card, text="우선순위").grid(row=3, column=0, sticky="w", padx=(0, 10), pady=6)
     edit_priority_var = tk.StringVar(value=target[3])
-    tk.OptionMenu(frame, edit_priority_var, "긴급", "높음", "보통", "낮음").grid(
-        row=3, column=1, padx=5, pady=5, sticky="w"
-    )
+    ttk.Combobox(
+        card,
+        textvariable=edit_priority_var,
+        values=PRIORITIES,
+        state="readonly",
+        width=34,
+    ).grid(row=3, column=1, sticky="ew", pady=6)
 
-    tk.Label(frame, text="메모").grid(row=4, column=0, padx=5, pady=5)
-    edit_memo = tk.Entry(frame, width=32)
-    edit_memo.grid(row=4, column=1, columnspan=2, padx=5, pady=5, sticky="w")
+    ttk.Label(card, text="메모").grid(row=4, column=0, sticky="w", padx=(0, 10), pady=6)
+    edit_memo = ttk.Entry(card, width=36)
+    edit_memo.grid(row=4, column=1, sticky="ew", pady=6)
     edit_memo.insert(0, target[4])
+    card.columnconfigure(1, weight=1)
 
     # 수정 창 입력값을 검증한 뒤 해당 일정을 교체·저장하고 창을 닫는다.
     def save_edit():
@@ -182,7 +176,7 @@ def edit_selected():
                 parent=win,
             )
 
-    tk.Button(win, text="저장", width=12, command=save_edit).pack(pady=5)
+    ttk.Button(win, text="저장", style="Primary.TButton", command=save_edit).pack(pady=(0, 12))
 
 
 # 사용자 확인 후 모든 일정을 삭제하고 파일·화면을 비운다.
