@@ -1,4 +1,3 @@
-import datetime
 import tkinter as tk
 import tkinter.messagebox as messagebox
 
@@ -6,7 +5,7 @@ from schedule_app import state, ui
 from schedule_app.display import show_rows
 from schedule_app.input_ops import clear_input_fields, read_input_schedule
 from schedule_app.sorting import sort_key_by_date_priority, sort_key_by_priority_date
-from schedule_app.storage import save_schedules
+from schedule_app.storage import load_schedules, save_schedules
 from schedule_app.validation import (
     date_error_message,
     forbidden_char_message,
@@ -16,6 +15,12 @@ from schedule_app.validation import (
 )
 
 # 일정 추가·조회·수정·삭제·초기화 등 CRUD 기능.
+
+
+# 파일 저장 실패 시 디스크 내용으로 메모리·화면을 되돌린다.
+def _reload_after_save_failure():
+    load_schedules()
+    show_all()
 
 
 # 전체 일정을 시작일·우선순위 순으로 정렬해 결과창에 표시한다.
@@ -36,9 +41,11 @@ def add_schedule():
     if new_schedule is None:
         return
     state.schedules.append(new_schedule)
-    save_schedules()
-    clear_input_fields()
-    show_all()
+    if save_schedules():
+        clear_input_fields()
+        show_all()
+    else:
+        _reload_after_save_failure()
 
 
 # 결과창에서 선택한 일정을 목록·파일에서 삭제한다.
@@ -56,10 +63,15 @@ def delete_selected():
     target = state.current_rows[index]
     if target in state.schedules:
         state.schedules.remove(target)
-        save_schedules()
-        show_all()
-        ui.result_box.selection_clear(0, tk.END)
-        messagebox.showinfo("삭제 완료", "선택한 일정이 삭제되었습니다.")
+        if save_schedules():
+            show_all()
+            ui.result_box.selection_clear(0, tk.END)
+            messagebox.showinfo("삭제 완료", "선택한 일정이 삭제되었습니다.")
+        else:
+            _reload_after_save_failure()
+            messagebox.showerror(
+                "삭제 오류", "파일에 저장하지 못해 삭제가 반영되지 않았습니다."
+            )
     else:
         messagebox.showerror("삭제 오류", "삭제할 일정을 찾지 못했습니다.")
 
@@ -135,13 +147,6 @@ def edit_selected():
         if not is_valid_date(end_date):
             messagebox.showerror("입력 오류", "종료 " + date_error_message(), parent=win)
             return
-
-        today = str(datetime.date.today())
-        if start_date < today or end_date < today:
-            messagebox.showerror(
-                "입력 오류", "오늘 이전 날짜는 등록할 수 없습니다.", parent=win
-            )
-            return
         if start_date > end_date:
             messagebox.showerror(
                 "입력 오류", "종료일은 시작일보다 빠를 수 없습니다.", parent=win
@@ -165,10 +170,17 @@ def edit_selected():
 
         idx = state.schedules.index(target)
         state.schedules[idx] = new_item
-        save_schedules()
-        show_all()
-        win.destroy()
-        messagebox.showinfo("수정 완료", "일정이 수정되었습니다.")
+        if save_schedules():
+            show_all()
+            win.destroy()
+            messagebox.showinfo("수정 완료", "일정이 수정되었습니다.")
+        else:
+            _reload_after_save_failure()
+            messagebox.showerror(
+                "수정 오류",
+                "파일에 저장하지 못해 수정이 반영되지 않았습니다.",
+                parent=win,
+            )
 
     tk.Button(win, text="저장", width=12, command=save_edit).pack(pady=5)
 
@@ -178,6 +190,11 @@ def reset_all_schedules():
     if messagebox.askyesno("초기화 확인", "등록된 모든 일정을 삭제하시겠습니까?"):
         state.schedules.clear()
         state.current_rows.clear()
-        save_schedules()
-        clear_input_fields()
-        show_all()
+        if save_schedules():
+            clear_input_fields()
+            show_all()
+        else:
+            _reload_after_save_failure()
+            messagebox.showerror(
+                "초기화 오류", "파일에 저장하지 못해 초기화가 반영되지 않았습니다."
+            )

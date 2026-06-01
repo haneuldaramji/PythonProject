@@ -14,10 +14,17 @@ from schedule_app.validation import date_error_message, is_valid_date
 def open_date_input_window(title, guide_text, button_text, dday_mode):
     win = tk.Toplevel(ui.root)
     win.title(title)
-    win.geometry("360x170")
+    win.geometry("500x260" if dday_mode else "360x170")
     win.resizable(False, False)
 
-    tk.Label(win, text=guide_text, font=("Arial", 11, "bold")).pack(pady=8)
+    guide_wrap = 460 if dday_mode else 320
+    tk.Label(
+        win,
+        text=guide_text,
+        font=("Arial", 10, "bold"),
+        wraplength=guide_wrap,
+        justify="center",
+    ).pack(pady=(12, 6), padx=16)
     tk.Label(win, text="형식: YYYY-MM-DD  예: 2026-05-11").pack()
 
     date_entry = tk.Entry(win, width=22, justify="center")
@@ -48,8 +55,13 @@ def open_date_search_window():
     open_date_input_window("날짜별 조회", "조회할 날짜를 입력하세요.", "조회", False)
 
 
-# D-day 조회용 팝업을 연다(종료일 기준 D-day 표시).
+# D-day 조회용 팝업을 연다(기준일로 일정 필터, 종료일·오늘 기준 D-day 표시).
 def open_dday_window():
     open_date_input_window(
-        "D-day 조회", "D-day를 확인할 날짜를 입력하세요.", "조회", True
+        "D-day 조회",
+        "기준 날짜를 입력하세요.\n"
+        "그날 진행 중인 일정을 보여 주며,\n"
+        "각 일정 종료일까지의 D-day(오늘 기준)를 표시합니다.",
+        "조회",
+        True,
     )

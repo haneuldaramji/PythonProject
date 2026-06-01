@@ -13,7 +13,7 @@ def date_to_str(d):
     return d.isoformat()
 
 
-# 기준 날짜까지 남은 일수를 D-day, D-Day, D+N 형식 문자열로 만든다.
+# target_date(보통 일정 종료일)까지 오늘 기준 남은 일수를 D-N, D-Day, D+N 문자열로 만든다.
 def make_dday_text(target_date):
     target = parse_date_str(target_date)
     diff = (target - datetime.date.today()).days

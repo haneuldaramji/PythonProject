@@ -32,7 +32,7 @@ def show_rows(rows, empty_msg, dday_mode):
             date_display = (
                 start_date if start_date == end_date else f"{start_date} ~ {end_date}"
             )
-            dday = f"{make_dday_text(end_date)} | " if dday_mode else ""
+            dday = f"종료 {make_dday_text(end_date)} | " if dday_mode else ""
             memo_part = f" | 메모: {memo}" if memo != "" else ""
             text = f"{i}. {date_display} | {dday}[{priority}] | {task}{memo_part}"
             ui.result_box.insert(tk.END, text)
