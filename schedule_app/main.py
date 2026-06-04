@@ -20,11 +20,21 @@ from schedule_app.display import (
     update_dday_toggle_button,
 )
 from schedule_app.input_ops import set_main_dates
-from schedule_app.search import open_date_search_window
+from schedule_app.search import apply_range_search, open_date_search_window
 from schedule_app.storage import load_schedules
 from schedule_app.theme import COLORS, apply_theme, font
 
 # 메인 창 UI 구성, 버튼 연결, 프로그램 실행 진입.
+
+_MAIN_WIDTH = 860
+_MAIN_HEIGHT = 580
+
+
+def _center_on_screen(win, width, height):
+    win.update_idletasks()
+    x = max(0, (win.winfo_screenwidth() - width) // 2)
+    y = max(0, (win.winfo_screenheight() - height) // 2)
+    win.geometry(f"{width}x{height}+{x}+{y}")
 
 
 # 메인 창 UI를 구성하고 일정을 불러온 뒤 이벤트 루프를 시작한다.
@@ -32,7 +42,7 @@ def run():
     ui.root = tk.Tk()
     apply_theme(ui.root)
     ui.root.title("일정 관리 시스템")
-    ui.root.geometry("860x580")
+    ui.root.geometry(f"{_MAIN_WIDTH}x{_MAIN_HEIGHT}")
     ui.root.minsize(820, 520)
 
     outer = ttk.Frame(ui.root, padding=12)
@@ -70,7 +80,13 @@ def run():
         input_card,
         text="기간 달력",
         width=10,
-        command=lambda: open_range_calendar(ui.root, set_main_dates),
+        command=lambda: open_range_calendar(
+            ui.root,
+            set_range_func=set_main_dates,
+            on_search=apply_range_search,
+            allow_past=True,
+            root=ui.root,
+        ),
     )
     cal_btn.grid(row=0, column=4, rowspan=2, padx=(12, 0), pady=6, sticky="ns")
 
@@ -91,9 +107,9 @@ def run():
 
     ttk.Label(
         input_card,
-        text="날짜 형식: YYYY-MM-DD (예: 2026-06-01)",
+        text="날짜 형식: YYYY-MM-DD  ·  기간 달력: 날짜 선택 후 [조회]로 기간 일정 검색",
         style="Hint.TLabel",
-    ).grid(row=3, column=1, columnspan=3, sticky="w", pady=(0, 2))
+    ).grid(row=3, column=1, columnspan=4, sticky="w", pady=(0, 2))
 
     input_card.columnconfigure(1, weight=1)
 
@@ -104,21 +120,21 @@ def run():
         action_card.columnconfigure(col, weight=1, uniform="action_btn")
 
     btn_specs = [
-        ("일정 추가", add_schedule, "Primary.TButton", 0, 0),
-        ("전체 보기", show_all, "TButton", 0, 1),
-        ("우선순위 정렬", sort_by_priority, "TButton", 0, 2),
-        ("날짜별 조회", open_date_search_window, "TButton", 0, 3),
-        ("종료일 표시 켜기", toggle_dday_display, "Toggle.TButton", 1, 0),
-        ("선택 수정", edit_selected, "TButton", 1, 1),
-        ("선택 삭제", delete_selected, "Danger.TButton", 1, 2),
-        ("전체 초기화", reset_all_schedules, "Danger.TButton", 1, 3),
+        ("일정 추가", add_schedule, "Primary.TButton", 0, 0, 1),
+        ("전체 보기", show_all, "TButton", 0, 1, 1),
+        ("우선순위 정렬", sort_by_priority, "TButton", 0, 2, 1),
+        ("날짜별 조회", open_date_search_window, "TButton", 0, 3, 1),
+        ("종료일 표시 켜기", toggle_dday_display, "Toggle.TButton", 1, 0, 1),
+        ("선택 수정", edit_selected, "TButton", 1, 1, 1),
+        ("선택 삭제", delete_selected, "Danger.TButton", 1, 2, 1),
+        ("전체 초기화", reset_all_schedules, "Danger.TButton", 1, 3, 1),
     ]
     btn_char_width = 18
-    for text, cmd, style, r, c in btn_specs:
+    for text, cmd, style, r, c, colspan in btn_specs:
         btn = ttk.Button(
             action_card, text=text, command=cmd, style=style, width=btn_char_width
         )
-        btn.grid(row=r, column=c, padx=4, pady=4, sticky="ew")
+        btn.grid(row=r, column=c, columnspan=colspan, padx=4, pady=4, sticky="ew")
         if style == "Toggle.TButton":
             ui.dday_toggle_btn = btn
 
@@ -170,6 +186,8 @@ def run():
     status_bar.pack(fill=tk.X)
     ui.status_label = ttk.Label(status_bar, text="", style="Status.TLabel")
     ui.status_label.pack(fill=tk.X)
+
+    _center_on_screen(ui.root, _MAIN_WIDTH, _MAIN_HEIGHT)
 
     load_schedules()
     show_all()
