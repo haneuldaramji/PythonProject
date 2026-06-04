@@ -4,22 +4,32 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from schedule_app.date_utils import date_to_str
-from schedule_app.theme import COLORS, font, style_toplevel
+from schedule_app.theme import COLORS, center_toplevel, font, primary_button, style_toplevel
 
 # 기간 선택용 팝업 달력 UI.
 
 
-# 팝업 달력에서 시작일·종료일을 두 번 클릭해 선택하고 콜백으로 전달한다.
-def open_range_calendar(parent, set_range_func):
+# 팝업 달력에서 시작일·종료일을 선택한다.
+# on_search가 있으면 두 날짜 선택 후 하단 [조회]로 검색하고, 없으면 두 번째 클릭 시 set_range_func 호출 후 닫는다.
+def open_range_calendar(
+    parent,
+    set_range_func=None,
+    on_search=None,
+    allow_past=False,
+    root=None,
+):
     win = tk.Toplevel(parent)
     win.title("시작일을 선택하세요 (1/2)")
     win.resizable(False, False)
+    win.transient(parent)
     win.grab_set()
     style_toplevel(win, parent)
 
+    theme_root = root or parent.winfo_toplevel()
     view = datetime.date.today()
     cal_state = {"year": view.year, "month": view.month}
     clicks = []
+    range_selected = {"start": None, "end": None}
 
     card = ttk.LabelFrame(win, text="  기간 선택  ", padding=12)
     card.pack(padx=14, pady=14)
@@ -32,6 +42,20 @@ def open_range_calendar(parent, set_range_func):
 
     grid_frame = tk.Frame(card, bg=COLORS["card"])
     grid_frame.pack()
+
+    range_label = ttk.Label(card, text="시작일과 종료일을 차례로 선택하세요.", style="Hint.TLabel")
+
+    def apply_range(start_date_obj, end_date_obj):
+        if end_date_obj < start_date_obj:
+            start_date_obj, end_date_obj = end_date_obj, start_date_obj
+        range_selected["start"] = start_date_obj
+        range_selected["end"] = end_date_obj
+        start_str = date_to_str(start_date_obj)
+        end_str = date_to_str(end_date_obj)
+        range_label.config(text=f"선택: {start_str} ~ {end_str}")
+        if set_range_func is not None:
+            set_range_func(start_str, end_str)
+        render_days()
 
     def change_month(delta):
         y = cal_state["year"]
@@ -62,19 +86,19 @@ def open_range_calendar(parent, set_range_func):
 
         if len(clicks) == 0:
             clicks.append(picked)
+            range_selected["start"] = None
+            range_selected["end"] = None
+            range_label.config(text=f"시작: {date_to_str(picked)}  →  종료일을 선택하세요")
             win.title("종료일을 선택하세요 (2/2)")
             render_days()
         elif len(clicks) == 1:
-            start_date_obj = clicks[0]
-            if picked < start_date_obj:
-                messagebox.showerror(
-                    "선택 오류",
-                    "종료일은 시작일보다 빠를 수 없습니다.",
-                    parent=win,
-                )
-                return
-            set_range_func(date_to_str(start_date_obj), date_to_str(picked))
-            win.destroy()
+            start_date_obj, end_date_obj = clicks[0], picked
+            clicks.clear()
+            apply_range(start_date_obj, end_date_obj)
+            if on_search is None:
+                win.destroy()
+            else:
+                win.title("기간 선택")
 
     def render_days():
         for child in grid_frame.winfo_children():
@@ -95,6 +119,9 @@ def open_range_calendar(parent, set_range_func):
                 fg=COLORS["text"],
             ).grid(row=0, column=col, pady=2, padx=1)
 
+        sel_start = range_selected["start"]
+        sel_end = range_selected["end"]
+
         month_days = calendar.monthcalendar(y, m)
         for row_index, week in enumerate(month_days, start=1):
             for col_index, day in enumerate(week):
@@ -106,8 +133,15 @@ def open_range_calendar(parent, set_range_func):
 
                 day_date = datetime.date(y, m, day)
                 btn_text = str(day) + ("*" if day_date == today else "")
-                state_btn = tk.NORMAL if day_date >= today else tk.DISABLED
-                selected = len(clicks) == 1 and day_date == clicks[0]
+                state_btn = tk.NORMAL if allow_past or day_date >= today else tk.DISABLED
+
+                in_range = (
+                    sel_start is not None
+                    and sel_end is not None
+                    and sel_start <= day_date <= sel_end
+                )
+                picking_start = len(clicks) == 1 and day_date == clicks[0]
+                selected = in_range or picking_start
                 bg = COLORS["primary"] if selected else COLORS["card"]
                 fg = COLORS["primary_text"] if selected else COLORS["text"]
 
@@ -126,7 +160,40 @@ def open_range_calendar(parent, set_range_func):
                 )
                 btn.grid(row=row_index, column=col_index, padx=1, pady=1)
 
+    def run_search():
+        if range_selected["start"] is None or range_selected["end"] is None:
+            messagebox.showwarning(
+                "선택 필요",
+                "시작일과 종료일을 차례로 선택한 뒤 조회를 누르세요.",
+                parent=win,
+            )
+            return
+        on_search(
+            date_to_str(range_selected["start"]),
+            date_to_str(range_selected["end"]),
+        )
+        win.destroy()
+
     render_days()
-    ttk.Label(card, text="* 오늘  ·  같은 날짜를 두 번 누르면 하루 일정", style="Hint.TLabel").pack(
-        pady=(10, 0)
-    )
+    range_label.pack(pady=(10, 0))
+
+    if on_search is not None:
+        ttk.Label(
+            card,
+            text="1) 시작일  2) 종료일 선택 후 [조회]",
+            style="Hint.TLabel",
+        ).pack(pady=(6, 0))
+        btn_row = ttk.Frame(card)
+        btn_row.pack(fill=tk.X, pady=(10, 0))
+        primary_button(btn_row, "조회", run_search, theme_root).pack()
+        center_toplevel(win, 340, 420)
+    else:
+        ttk.Label(
+            card,
+            text="1) 시작일  2) 종료일 클릭  ·  * 오늘  ·  같은 날 두 번 = 하루",
+            style="Hint.TLabel",
+        ).pack(pady=(6, 0))
+        center_toplevel(win, 340, 360)
+
+    win.lift()
+    win.focus_force()

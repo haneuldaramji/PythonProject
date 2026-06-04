@@ -4,7 +4,8 @@ from tkinter import messagebox, ttk
 from schedule_app import state, ui
 from schedule_app.config import PRIORITIES
 from schedule_app.display import clear_selection, get_selected_schedule, show_rows
-from schedule_app.theme import style_toplevel
+from schedule_app.calendar_widget import open_range_calendar
+from schedule_app.theme import center_toplevel, primary_button, style_toplevel
 from schedule_app.input_ops import clear_input_fields, read_input_schedule
 from schedule_app.sorting import sort_key_by_date_priority, sort_key_by_priority_date
 from schedule_app.storage import load_schedules, save_schedules
@@ -83,12 +84,12 @@ def edit_selected():
 
     win = tk.Toplevel(ui.root)
     win.title("일정 수정")
-    win.geometry("480x320")
     win.resizable(False, False)
     style_toplevel(win, ui.root)
+    center_toplevel(win, 480, 380)
 
     card = ttk.LabelFrame(win, text="  일정 수정  ", padding=16)
-    card.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
+    card.pack(fill=tk.BOTH, expand=True, padx=16, pady=(16, 8))
 
     ttk.Label(card, text="할 일").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=6)
     edit_task = ttk.Entry(card, width=36)
@@ -104,6 +105,19 @@ def edit_selected():
     edit_end = ttk.Entry(card, width=18, justify="center")
     edit_end.grid(row=2, column=1, sticky="w", pady=6)
     edit_end.insert(0, target[2])
+
+    def set_edit_dates(start_str, end_str):
+        edit_start.delete(0, tk.END)
+        edit_start.insert(0, start_str)
+        edit_end.delete(0, tk.END)
+        edit_end.insert(0, end_str)
+
+    ttk.Button(
+        card,
+        text="기간 달력",
+        width=10,
+        command=lambda: open_range_calendar(win, set_edit_dates, allow_past=True),
+    ).grid(row=1, column=2, rowspan=2, padx=(12, 0), pady=6, sticky="ns")
 
     ttk.Label(card, text="우선순위").grid(row=3, column=0, sticky="w", padx=(0, 10), pady=6)
     edit_priority_var = tk.StringVar(value=target[3])
@@ -176,7 +190,11 @@ def edit_selected():
                 parent=win,
             )
 
-    ttk.Button(win, text="저장", style="Primary.TButton", command=save_edit).pack(pady=(0, 12))
+    btn_row = ttk.Frame(win)
+    btn_row.pack(fill=tk.X, padx=16, pady=(0, 16))
+    confirm = primary_button(btn_row, "확인", save_edit, ui.root)
+    confirm.pack()
+    win.bind("<Return>", lambda _e: save_edit())
 
 
 # 사용자 확인 후 모든 일정을 삭제하고 파일·화면을 비운다.

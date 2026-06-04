@@ -68,7 +68,7 @@ def apply_theme(root):
         "Title.TLabel",
         background=COLORS["bg"],
         foreground=COLORS["text"],
-        font=font(root, 20, True),
+        font=font(root, 17, True),
     )
     style.configure(
         "Subtitle.TLabel",
@@ -128,8 +128,16 @@ def apply_theme(root):
     )
     style.map(
         "Primary.TButton",
-        background=[("active", COLORS["primary_active"]), ("pressed", COLORS["primary_active"])],
-        foreground=[("disabled", COLORS["muted"])],
+        background=[
+            ("active", COLORS["primary_active"]),
+            ("pressed", COLORS["primary_active"]),
+        ],
+        foreground=[
+            ("active", COLORS["primary_text"]),
+            ("pressed", COLORS["primary_text"]),
+            ("!disabled", COLORS["primary_text"]),
+            ("disabled", COLORS["muted"]),
+        ],
     )
     style.configure(
         "Danger.TButton",
@@ -160,7 +168,7 @@ def apply_theme(root):
         background=COLORS["card"],
         fieldbackground=COLORS["card"],
         foreground=COLORS["text"],
-        rowheight=30,
+        rowheight=26,
         font=font(root, 10),
         borderwidth=0,
     )
@@ -179,8 +187,38 @@ def apply_theme(root):
     )
 
 
-def style_toplevel(win, _root=None):
+def style_toplevel(win, root=None):
     win.configure(bg=COLORS["bg"])
+    if root is not None:
+        _resolve_font_family(root)
+
+
+def center_toplevel(win, width, height):
+    win.update_idletasks()
+    x = max(0, (win.winfo_screenwidth() - width) // 2)
+    y = max(0, (win.winfo_screenheight() - height) // 2)
+    win.geometry(f"{width}x{height}+{x}+{y}")
+
+
+def primary_button(parent, text, command, root=None):
+    """팝업 확인 버튼. Windows ttk Primary 스타일에서 글자가 안 보이는 문제를 피한다."""
+    ref = root or parent.winfo_toplevel()
+    return tk.Button(
+        parent,
+        text=text,
+        command=command,
+        bg=COLORS["primary"],
+        fg=COLORS["primary_text"],
+        activebackground=COLORS["primary_active"],
+        activeforeground=COLORS["primary_text"],
+        disabledforeground=COLORS["muted"],
+        font=font(ref, 10, True),
+        relief=tk.RAISED,
+        bd=1,
+        padx=16,
+        pady=8,
+        cursor="hand2",
+    )
 
 
 def priority_tag(priority):
