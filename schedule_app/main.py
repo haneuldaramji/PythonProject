@@ -32,14 +32,14 @@ def run():
     ui.root = tk.Tk()
     apply_theme(ui.root)
     ui.root.title("일정 관리 시스템")
-    ui.root.geometry("920x700")
-    ui.root.minsize(880, 660)
+    ui.root.geometry("860x580")
+    ui.root.minsize(820, 520)
 
-    outer = ttk.Frame(ui.root, padding=16)
+    outer = ttk.Frame(ui.root, padding=12)
     outer.pack(fill=tk.BOTH, expand=True)
 
     header = ttk.Frame(outer)
-    header.pack(fill=tk.X, pady=(0, 12))
+    header.pack(fill=tk.X, pady=(0, 8))
     ttk.Label(header, text="일정 관리", style="Title.TLabel").pack(anchor="w")
     ttk.Label(
         header,
@@ -47,8 +47,8 @@ def run():
         style="Subtitle.TLabel",
     ).pack(anchor="w", pady=(2, 0))
 
-    input_card = ttk.LabelFrame(outer, text="  새 일정  ", padding=14)
-    input_card.pack(fill=tk.X, pady=(0, 10))
+    input_card = ttk.LabelFrame(outer, text="  새 일정  ", padding=10)
+    input_card.pack(fill=tk.X, pady=(0, 8))
 
     today = str(datetime.date.today())
 
@@ -97,8 +97,8 @@ def run():
 
     input_card.columnconfigure(1, weight=1)
 
-    action_card = ttk.LabelFrame(outer, text="  작업  ", padding=12)
-    action_card.pack(fill=tk.X, pady=(0, 10))
+    action_card = ttk.LabelFrame(outer, text="  작업  ", padding=10)
+    action_card.pack(fill=tk.X, pady=(0, 8))
 
     for col in range(4):
         action_card.columnconfigure(col, weight=1, uniform="action_btn")
@@ -137,7 +137,7 @@ def run():
         list_inner,
         columns=TREE_COLUMNS,
         show="headings",
-        height=14,
+        height=10,
         yscrollcommand=scroll_y.set,
         selectmode="browse",
     )

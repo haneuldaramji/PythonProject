@@ -68,7 +68,7 @@ def apply_theme(root):
         "Title.TLabel",
         background=COLORS["bg"],
         foreground=COLORS["text"],
-        font=font(root, 20, True),
+        font=font(root, 17, True),
     )
     style.configure(
         "Subtitle.TLabel",
@@ -160,7 +160,7 @@ def apply_theme(root):
         background=COLORS["card"],
         fieldbackground=COLORS["card"],
         foreground=COLORS["text"],
-        rowheight=30,
+        rowheight=26,
         font=font(root, 10),
         borderwidth=0,
     )
